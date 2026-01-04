@@ -34,6 +34,30 @@ import (
 func (s *Server) V2ResolveCore(
 	ctx context.Context, in *pbv2.ResolveRequest,
 ) (*pbv2.ResolveResponse, error) {
+	// Check if expanded functionality is enabled
+	if s.flags != nil && s.flags.EnableExpandedResolve {
+		// Flag is enabled
+		// Check for conflicts: Property cannot be used with specialized_resolver (unless 'place') or search_properties.
+		// However, Property CAN be used with filters, limit, and returned_properties (Hybrid Mode).
+		isConflict := false
+		if in.GetProperty() != "" {
+			if len(in.GetSearchProperties()) > 0 {
+				isConflict = true
+			}
+			if in.GetSpecializedResolver() != "" && in.GetSpecializedResolver() != "place" {
+				isConflict = true
+			}
+		}
+
+		if isConflict {
+			return nil, status.Errorf(codes.InvalidArgument, "conflicting parameters: 'property' cannot be used with 'specialized_resolver' (except 'place') or 'search_properties'")
+		}
+		if in.GetProperty() == "" {
+			// New Route (Placeholder)
+			return nil, status.Error(codes.Unimplemented, "expanded resolve logic not yet implemented")
+		}
+	}
+
 	arcs, err := v2.ParseProperty(in.GetProperty())
 	if err != nil {
 		return nil, err

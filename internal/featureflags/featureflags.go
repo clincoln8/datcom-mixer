@@ -36,6 +36,8 @@ type Flags struct {
 	SpannerGraphDatabase string `yaml:"SpannerGraphDatabase"`
 	// Whether to use stale reads for Spanner.
 	UseStaleReads bool `yaml:"UseStaleReads"`
+	// Enable expanded/v2 resolution features (statvars, topics, filters).
+	EnableExpandedResolve bool `yaml:"EnableExpandedResolve"`
 }
 
 // setDefaultValues creates a new Flags struct with default values.
@@ -46,6 +48,7 @@ func setDefaultValues() *Flags {
 		UseSpannerGraph:      false,
 		SpannerGraphDatabase: "",
 		UseStaleReads:        false,
+		EnableExpandedResolve: false,
 	}
 }
 

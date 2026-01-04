@@ -16,6 +16,8 @@
 syntax = "proto3";
 package datacommons.v2;
 
+import "google/protobuf/struct.proto";
+
 option go_package = "github.com/datacommonsorg/mixer/internal/proto/v2";
 
 // Three modes are supported:
@@ -33,7 +35,12 @@ option go_package = "github.com/datacommonsorg/mixer/internal/proto/v2";
 //   property = "<-description->dcid" or "<-description{typeOf:City}->dcid"
 message ResolveRequest{
     repeated string nodes = 1;
-    string property = 2;
+    string property = 2; // Deprecated: Use specialized_resolver and filters instead.
+    string specialized_resolver = 3;
+    repeated string search_properties = 4;
+    google.protobuf.Struct filters = 5;
+    int32 limit = 6;
+    repeated string returned_properties = 7;
 }
 
 message ResolveResponse{
@@ -41,9 +48,23 @@ message ResolveResponse{
         message Candidate {
             string dcid = 1;
             string dominant_type = 2;
+            string name = 3;
+            message ValueList {
+                repeated string values = 1;
+            }
+            map<string, ValueList> properties = 4;
+            google.protobuf.Struct metadata = 5;
         }
         string node = 1;
         repeated Candidate candidates = 3;
+        
+        enum Status {
+             UNKNOWN_STATUS = 0;
+             COMPLETED = 1;
+             FAILED = 2;
+        }
+        Status status = 4;
+        string error = 5;
 
         reserved 2;
     }
