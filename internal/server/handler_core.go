@@ -54,7 +54,7 @@ func (s *Server) V2ResolveCore(
 		}
 		if in.GetProperty() == "" {
 			// New Route: Dispatcher
-			return resolve.GetDispatcher().Dispatch(ctx, in)
+			return resolve.GetDispatcher().Dispatch(ctx, in, s.store, s.mapsClient)
 		}
 	}
 

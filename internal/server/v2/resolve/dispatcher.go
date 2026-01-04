@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	pbv2 "github.com/datacommonsorg/mixer/internal/proto/v2"
+	"github.com/datacommonsorg/mixer/internal/maps"
+	"github.com/datacommonsorg/mixer/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,6 +20,7 @@ var (
 // Dispatcher routes resolution requests to the appropriate backend.
 type Dispatcher struct {
 	vertexAI *VertexAIResolver
+	place    *PlaceResolver
 }
 
 // GetDispatcher returns the singleton Dispatcher instance.
@@ -40,29 +43,23 @@ func GetDispatcher() *Dispatcher {
 func NewDispatcher(client VertexAI) *Dispatcher {
 	return &Dispatcher{
 		vertexAI: NewVertexAIResolver(client),
+		place:    NewPlaceResolver(),
 	}
 }
 
 // Dispatch routes the request.
-func (d *Dispatcher) Dispatch(ctx context.Context, in *pbv2.ResolveRequest) (*pbv2.ResolveResponse, error) {
+func (d *Dispatcher) Dispatch(ctx context.Context, in *pbv2.ResolveRequest, store *store.Store, mapsClient maps.MapsClient) (*pbv2.ResolveResponse, error) {
 	resolver := in.GetSpecializedResolver()
+
+	var resp *pbv2.ResolveResponse
+	var err error
 
 	switch {
 	case resolver == "place":
-		// This should technically handle the 'place' logic if we moved it here.
-		// For now, if code calls this, it implies non-legacy path?
-		// But in handler_core.go, we only call this if property == "".
-		// Existing 'place' logic usually requires property?
-		// If resolver == "place" and property == "", what should happen?
-		// "Resolve 'mountain view' to Place DCID" (default behavior).
-		// We can return Unimplemented for "place" here if we haven't ported the description resolution yet,
-		// OR we can wrap the existing legacy place resolution.
-		// For the POC, let's leave "place" as Unimplemented here or basic error,
-		// focusing on vertexai.
-		return nil, status.Error(codes.Unimplemented, "expanded 'place' resolution without property not yet implemented")
+		resp, err = d.place.Resolve(ctx, in, store, mapsClient)
 
 	case len(resolver) > 9 && resolver[:9] == "vertexai_":
-		return d.vertexAI.Resolve(ctx, in)
+		resp, err = d.vertexAI.Resolve(ctx, in)
 
 	case resolver == "embeddings":
 		return nil, status.Error(codes.Unimplemented, "embeddings resolver not yet implemented")
@@ -70,4 +67,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, in *pbv2.ResolveRequest) (*pb
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unknown specialized resolver: %s", resolver)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return StandardizeResponse(in, resp), nil
 }

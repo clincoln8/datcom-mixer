@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	pbv2 "github.com/datacommonsorg/mixer/internal/proto/v2"
+	"github.com/datacommonsorg/mixer/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -31,13 +32,14 @@ func TestDispatcher_Dispatch(t *testing.T) {
 			wantErrorContains: "Vertex AI client not initialized",
 		},
 		{
-			desc: "Resolver: place -> Unimplemented",
+			desc: "Resolver: place -> Routes to PlaceResolver (Simulated Fail)",
 			req: &pbv2.ResolveRequest{
 				Nodes:               []string{"foo"},
 				SpecializedResolver: "place",
 			},
-			wantCode:          codes.Unimplemented,
-			wantErrorContains: "expanded 'place' resolution",
+			// With empty store, PlaceResolver now returns FailedPrecondition
+			wantCode:          codes.FailedPrecondition, 
+			wantErrorContains: "store or BigTable client not initialized",
 		},
 		{
 			desc: "Resolver: embeddings -> Unimplemented",
@@ -64,8 +66,8 @@ func TestDispatcher_Dispatch(t *testing.T) {
 			// We pass nil client, which is enough to test routing because:
 			// 1. If routed to VertexAI, it hits 'client not initialized' error.
 			// 2. If routed elsewhere, it hits Unimplemented or InvalidArgument.
-			dispatcher := NewDispatcher(nil)
-			_, err := dispatcher.Dispatch(ctx, tc.req)
+			d := NewDispatcher(nil)
+			_, err := d.Dispatch(ctx, tc.req, &store.Store{}, nil)
 
 			if err == nil {
 				t.Errorf("got success, want error code %s", tc.wantCode)
