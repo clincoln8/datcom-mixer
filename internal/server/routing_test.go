@@ -106,7 +106,7 @@ func TestV2ResolveCore_Routing(t *testing.T) {
 				SpecializedResolver: "embeddings",
 			},
 			codes.Unimplemented,
-			"expanded resolve logic not yet implemented",
+			"embeddings resolver not yet implemented",
 		},
 	} {
 		t.Run(c.desc, func(t *testing.T) {

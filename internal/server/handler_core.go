@@ -53,8 +53,8 @@ func (s *Server) V2ResolveCore(
 			return nil, status.Errorf(codes.InvalidArgument, "conflicting parameters: 'property' cannot be used with 'specialized_resolver' (except 'place') or 'search_properties'")
 		}
 		if in.GetProperty() == "" {
-			// New Route (Placeholder)
-			return nil, status.Error(codes.Unimplemented, "expanded resolve logic not yet implemented")
+			// New Route: Dispatcher
+			return resolve.GetDispatcher().Dispatch(ctx, in)
 		}
 	}
 
