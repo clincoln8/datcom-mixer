@@ -67,6 +67,9 @@ func (d *Dispatcher) Dispatch(
 	metadata *resource.Metadata,
 ) (*pbv2.ResolveResponse, error) {
 	resolver := in.GetSpecializedResolver()
+	if resolver == "" {
+		resolver = "embeddings"
+	}
 
 	var resp *pbv2.ResolveResponse
 	var err error
@@ -115,6 +118,17 @@ func (d *Dispatcher) Dispatch(
 	err = EnrichResponse(ctx, store, metadata, resp, in.GetReturnedProperties())
 	if err != nil {
 		return nil, err
+	}
+
+	// Final Cleanup: Remove empty properties maps to avoid "{}" in JSON
+	if resp != nil {
+		for _, entity := range resp.Entities {
+			for _, candidate := range entity.Candidates {
+				if candidate.Properties != nil && len(candidate.Properties.Fields) == 0 {
+					candidate.Properties = nil
+				}
+			}
+		}
 	}
 
 	return resp, nil

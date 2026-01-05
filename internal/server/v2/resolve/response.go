@@ -27,9 +27,21 @@ func StandardizeResponse(req *pbv2.ResolveRequest, resp *pbv2.ResolveResponse) *
 		}
 
 		// 2. Limit
-		limit := int(req.GetLimit())
+		// 2. Limit
+		limit := 10
+		if req.Limit != nil {
+			limit = int(*req.Limit)
+		}
 		if limit >= 0 && len(entity.Candidates) > limit {
 			entity.Candidates = entity.Candidates[:limit]
+		}
+
+		// 3. Cleanup
+		// If properties is empty, set it to nil so it doesn't show up in JSON as "properties": {}
+		for _, candidate := range entity.Candidates {
+			if candidate.Properties != nil && len(candidate.Properties.Fields) == 0 {
+				candidate.Properties = nil
+			}
 		}
 	}
 

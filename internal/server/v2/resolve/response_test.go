@@ -94,3 +94,24 @@ func TestStandardizeResponse_ExplicitZeroLimit(t *testing.T) {
 		t.Errorf("Expected 0 candidates, got %d", len(gotResp.Entities[0].Candidates))
 	}
 }
+
+func TestStandardizeResponse_EmptyPropertiesCleanup(t *testing.T) {
+	req := &pbv2.ResolveRequest{}
+
+	// Candidate with empty Struct properties
+	candidates := []*pbv2.ResolveResponse_Entity_Candidate{
+		{
+			Dcid:       "A",
+			Properties: &structpb.Struct{Fields: map[string]*structpb.Value{}},
+		},
+	}
+	rawResp := &pbv2.ResolveResponse{
+		Entities: []*pbv2.ResolveResponse_Entity{{Node: "foo", Candidates: candidates}},
+	}
+
+	gotResp := StandardizeResponse(req, rawResp)
+
+	if gotResp.Entities[0].Candidates[0].Properties != nil {
+		t.Errorf("Expected nil Properties, got %v", gotResp.Entities[0].Candidates[0].Properties)
+	}
+}

@@ -94,9 +94,11 @@ func EnrichResponse(
 		}
 	}
 
-	// Always fetch typeOf in OUT direction
+	// Always fetch typeOf and name in OUT direction
 	outProps = append(outProps, "typeOf")
+	outProps = append(outProps, "name")
 	fetchedProps["typeOf"] = struct{}{}
+	fetchedProps["name"] = struct{}{}
 
 	if len(outProps) == 0 && len(inProps) == 0 {
 		return nil
@@ -123,6 +125,19 @@ func EnrichResponse(
 						responseKey := directionPrefix + prop
 						if prop == "typeOf" {
 							responseKey = "typeOf"
+						}
+
+						// Special handling for name
+						if prop == "name" {
+							if candidate.Name == "" {
+								for _, n := range nodes.Nodes {
+									if n.Value != "" {
+										candidate.Name = n.Value
+										break
+									}
+								}
+							}
+							continue
 						}
 
 						// Special handling for typeOf (Always Strings)

@@ -57,6 +57,15 @@ func TestDispatch(t *testing.T) {
 			wantCode:          codes.InvalidArgument,
 			wantErrorContains: "unknown specialized resolver",
 		},
+		{
+			desc: "Resolver: empty -> Defaults to embeddings (Unimplemented)",
+			req: &pbv2.ResolveRequest{
+				Nodes:               []string{"foo"},
+				SpecializedResolver: "", // Empty
+			},
+			wantCode:          codes.Unimplemented,
+			wantErrorContains: "embeddings resolver not yet implemented",
+		},
 	}
 
 	for _, tc := range tests {
