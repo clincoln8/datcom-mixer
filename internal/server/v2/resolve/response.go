@@ -11,12 +11,22 @@ func StandardizeResponse(req *pbv2.ResolveRequest, resp *pbv2.ResolveResponse) *
 		return &pbv2.ResolveResponse{}
 	}
 
-	// Convert structpb.Struct to map[string]string
-	filters := make(map[string]string)
+	// Convert structpb.Struct to map[string][]string
+	filters := make(map[string][]string)
 	if f := req.GetFilters(); f != nil {
 		for k, v := range f.Fields {
 			if s := v.GetStringValue(); s != "" {
-				filters[k] = s
+				filters[k] = []string{s}
+			} else if l := v.GetListValue(); l != nil {
+				var vals []string
+				for _, iv := range l.Values {
+					if s := iv.GetStringValue(); s != "" {
+						vals = append(vals, s)
+					}
+				}
+				if len(vals) > 0 {
+					filters[k] = vals
+				}
 			}
 		}
 	}

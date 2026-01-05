@@ -44,7 +44,7 @@ func TestFilterCandidates(t *testing.T) {
 
 	tests := []struct {
 		desc    string
-		filters map[string]string
+		filters map[string][]string
 		want    []*pbv2.ResolveResponse_Entity_Candidate
 	}{
 		{
@@ -54,7 +54,7 @@ func TestFilterCandidates(t *testing.T) {
 		},
 		{
 			desc:    "Filter by Type City",
-			filters: map[string]string{"typeOf": "City"},
+			filters: map[string][]string{"typeOf": {"City"}},
 			want: []*pbv2.ResolveResponse_Entity_Candidate{
 				{Dcid: "A", DominantType: "City"},
 				{Dcid: "C", DominantType: "City"},
@@ -62,14 +62,38 @@ func TestFilterCandidates(t *testing.T) {
 		},
 		{
 			desc:    "Filter by Type Country",
-			filters: map[string]string{"typeOf": "Country"},
+			filters: map[string][]string{"typeOf": {"Country"}},
 			want: []*pbv2.ResolveResponse_Entity_Candidate{
 				{Dcid: "B", DominantType: "Country"},
 			},
 		},
 		{
+			desc:    "Filter by Multiple Types (OR Logic)",
+			filters: map[string][]string{"typeOf": {"City", "Town"}},
+			want: []*pbv2.ResolveResponse_Entity_Candidate{
+				{Dcid: "A", DominantType: "City"},
+				{Dcid: "C", DominantType: "City"},
+			},
+		},
+		{
 			desc:    "Filter by Arbitrary Property (Literal Match)",
-			filters: map[string]string{"gender": "Female"},
+			filters: map[string][]string{"gender": {"Female"}},
+			want: []*pbv2.ResolveResponse_Entity_Candidate{
+				{
+					Dcid: "D",
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"gender": structpb.NewListValue(&structpb.ListValue{
+								Values: []*structpb.Value{structpb.NewStringValue("Female")},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:    "Filter by Arbitrary Property (OR Logic)",
+			filters: map[string][]string{"gender": {"Male", "Female"}},
 			want: []*pbv2.ResolveResponse_Entity_Candidate{
 				{
 					Dcid: "D",
@@ -85,7 +109,7 @@ func TestFilterCandidates(t *testing.T) {
 		},
 		{
 			desc:    "Filter by Arbitrary Property (Node Match)",
-			filters: map[string]string{"^containedInPlace": "geoId/06"},
+			filters: map[string][]string{"^containedInPlace": {"geoId/06"}},
 			want: []*pbv2.ResolveResponse_Entity_Candidate{
 				{
 					Dcid: "E",
@@ -107,12 +131,12 @@ func TestFilterCandidates(t *testing.T) {
 		},
 		{
 			desc:    "Filter by Non-matching Type",
-			filters: map[string]string{"typeOf": "Mountain"},
+			filters: map[string][]string{"typeOf": {"Mountain"}},
 			want:    nil,
 		},
 		{
 			desc:    "Filter by Non-matching Property",
-			filters: map[string]string{"gender": "Male"},
+			filters: map[string][]string{"gender": {"Male"}},
 			want:    nil,
 		},
 	}
