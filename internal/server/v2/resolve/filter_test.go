@@ -6,6 +6,7 @@ import (
 	pbv2 "github.com/datacommonsorg/mixer/internal/proto/v2"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestFilterCandidates(t *testing.T) {
@@ -13,6 +14,32 @@ func TestFilterCandidates(t *testing.T) {
 		{Dcid: "A", DominantType: "City"},
 		{Dcid: "B", DominantType: "Country"},
 		{Dcid: "C", DominantType: "City"},
+		{
+			Dcid: "D",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"gender": structpb.NewListValue(&structpb.ListValue{
+						Values: []*structpb.Value{structpb.NewStringValue("Female")},
+					}),
+				},
+			},
+		},
+		{
+			Dcid: "E",
+			Properties: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"^containedInPlace": structpb.NewListValue(&structpb.ListValue{
+						Values: []*structpb.Value{
+							structpb.NewStructValue(&structpb.Struct{
+								Fields: map[string]*structpb.Value{
+									"dcid": structpb.NewStringValue("geoId/06"),
+								},
+							}),
+						},
+					}),
+				},
+			},
+		},
 	}
 
 	tests := []struct {
@@ -41,8 +68,51 @@ func TestFilterCandidates(t *testing.T) {
 			},
 		},
 		{
+			desc:    "Filter by Arbitrary Property (Literal Match)",
+			filters: map[string]string{"gender": "Female"},
+			want: []*pbv2.ResolveResponse_Entity_Candidate{
+				{
+					Dcid: "D",
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"gender": structpb.NewListValue(&structpb.ListValue{
+								Values: []*structpb.Value{structpb.NewStringValue("Female")},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:    "Filter by Arbitrary Property (Node Match)",
+			filters: map[string]string{"^containedInPlace": "geoId/06"},
+			want: []*pbv2.ResolveResponse_Entity_Candidate{
+				{
+					Dcid: "E",
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"^containedInPlace": structpb.NewListValue(&structpb.ListValue{
+								Values: []*structpb.Value{
+									structpb.NewStructValue(&structpb.Struct{
+										Fields: map[string]*structpb.Value{
+											"dcid": structpb.NewStringValue("geoId/06"),
+										},
+									}),
+								},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
 			desc:    "Filter by Non-matching Type",
 			filters: map[string]string{"typeOf": "Mountain"},
+			want:    nil,
+		},
+		{
+			desc:    "Filter by Non-matching Property",
+			filters: map[string]string{"gender": "Male"},
 			want:    nil,
 		},
 	}

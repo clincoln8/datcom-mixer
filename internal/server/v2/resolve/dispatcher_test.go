@@ -6,13 +6,11 @@ import (
 	"testing"
 
 	pbv2 "github.com/datacommonsorg/mixer/internal/proto/v2"
-	"github.com/datacommonsorg/mixer/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func TestDispatcher_Dispatch(t *testing.T) {
-	ctx := context.Background()
+func TestDispatch(t *testing.T) {
 
 	tests := []struct {
 		desc             string
@@ -64,10 +62,9 @@ func TestDispatcher_Dispatch(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
 			// We pass nil client, which is enough to test routing because:
-			// 1. If routed to VertexAI, it hits 'client not initialized' error.
 			// 2. If routed elsewhere, it hits Unimplemented or InvalidArgument.
 			d := NewDispatcher(nil)
-			_, err := d.Dispatch(ctx, tc.req, &store.Store{}, nil)
+			_, err := d.Dispatch(context.Background(), tc.req, nil, nil, nil)
 
 			if err == nil {
 				t.Errorf("got success, want error code %s", tc.wantCode)

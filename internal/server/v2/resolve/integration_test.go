@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	pbv2 "github.com/datacommonsorg/mixer/internal/proto/v2"
-	"github.com/datacommonsorg/mixer/internal/store"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -45,11 +45,12 @@ func TestIntegration_Resolve(t *testing.T) {
 		Nodes:               []string{"health insurance"},
 		SpecializedResolver: "vertexai_embedding-statvars",
 		Filters:             filters,
+		Limit:               proto.Int32(10),
 	}
 
 	// 4. Run Dispatch (simulate handler call)
 	// Passing nil store/maps is fine because MockVertex doesn't use them
-	resp, err := d.Dispatch(context.Background(), req, &store.Store{}, nil)
+	resp, err := d.Dispatch(context.Background(), req, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Dispatch failed: %v", err)
 	}

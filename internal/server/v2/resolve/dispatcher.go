@@ -5,8 +5,9 @@ import (
 	"log"
 	"sync"
 
-	pbv2 "github.com/datacommonsorg/mixer/internal/proto/v2"
 	"github.com/datacommonsorg/mixer/internal/maps"
+	pbv2 "github.com/datacommonsorg/mixer/internal/proto/v2"
+	"github.com/datacommonsorg/mixer/internal/server/resource"
 	"github.com/datacommonsorg/mixer/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -58,7 +59,13 @@ func NewDispatcher(client VertexAI) *Dispatcher {
 }
 
 // Dispatch routes the request.
-func (d *Dispatcher) Dispatch(ctx context.Context, in *pbv2.ResolveRequest, store *store.Store, mapsClient maps.MapsClient) (*pbv2.ResolveResponse, error) {
+func (d *Dispatcher) Dispatch(
+	ctx context.Context,
+	in *pbv2.ResolveRequest,
+	store *store.Store,
+	mapsClient maps.MapsClient,
+	metadata *resource.Metadata,
+) (*pbv2.ResolveResponse, error) {
 	resolver := in.GetSpecializedResolver()
 
 	var resp *pbv2.ResolveResponse
@@ -82,5 +89,33 @@ func (d *Dispatcher) Dispatch(ctx context.Context, in *pbv2.ResolveRequest, stor
 		return nil, err
 	}
 
-	return StandardizeResponse(in, resp), nil
+	// 1. Pre-fetch properties needed for filtering
+	// Optimization: Only fetch properties used in filters for ALL candidates.
+	if filters := in.GetFilters(); filters != nil && len(filters.Fields) > 0 {
+		var filterProps []string
+		for k := range filters.Fields {
+			filterProps = append(filterProps, k)
+		}
+		// Only enrich if we actually have property filters (typeOf is handled via DominantType if prop missing, but good to have)
+		if len(filterProps) > 0 {
+			if err := EnrichResponse(ctx, store, metadata, resp, filterProps); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// 2. Standardize (Filter + Limit)
+	// This reduces the candidate list significantly.
+	resp = StandardizeResponse(in, resp)
+
+	// 3. Post-fetch requested properties for the remaining candidates
+	// We run this even if returned_properties is empty to ensure default properties (like typeOf) are populated.
+	// Optimization: We accept slight redundancy (re-fetching filter props) for the small list of survivors
+	// in exchange for not fetching returned_properties for the dropped candidates.
+	err = EnrichResponse(ctx, store, metadata, resp, in.GetReturnedProperties())
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

@@ -49,11 +49,9 @@ message ResolveResponse{
             string dcid = 1;
             string dominant_type = 2;
             string name = 3;
-            message ValueList {
-                repeated string values = 1;
-            }
-            map<string, ValueList> properties = 4;
+            google.protobuf.Struct properties = 4;
             google.protobuf.Struct metadata = 5;
+            repeated string type_of = 6;
         }
         string node = 1;
         repeated Candidate candidates = 3;

@@ -21,19 +21,75 @@ func FilterCandidates(candidates []*pbv2.ResolveResponse_Entity_Candidate, filte
 }
 
 // matchFilters checks if a candidate matches all filters.
-// Currently supports 'typeOf' filter.
+// Supports 'typeOf' and arbitrary property matching.
 func matchFilters(candidate *pbv2.ResolveResponse_Entity_Candidate, filters map[string]string) bool {
 	for key, wantValue := range filters {
 		// Handle 'typeOf' filter
+		// We still check DominantType for typeOf as a fast path or primary check,
+		// but ideally we should check the typeOf list in properties if available?
+		// For backward compatibility and current logic, DominantType is reliable enough for now.
 		if key == "typeOf" {
-			// Candidate DominantType should match.
-			// TODO: Handle inheritance or multiple types if candidate has full property map?
-			// For now, check DominantType.
 			if candidate.DominantType != wantValue {
+				// Fallback: Check candidate.Properties["typeOf"] list?
+				// The user might want to match ANY type in the list.
+				// If candidate.Properties exists and has typeOf, check it.
+				if candidate.Properties != nil {
+					if fields := candidate.Properties.Fields; fields != nil {
+						if listVal, ok := fields["typeOf"]; ok {
+							match := false
+							for _, v := range listVal.GetListValue().GetValues() {
+								if v.GetStringValue() == wantValue {
+									match = true
+									break
+								}
+							}
+							if match {
+								continue
+							}
+						}
+					}
+				}
 				return false
 			}
+			continue
 		}
-		// Add other property filters here if Candidate has properties map populated
+
+		// Arbitrary Property Filter
+		if candidate.Properties == nil || candidate.Properties.Fields == nil {
+			return false
+		}
+
+		val, ok := candidate.Properties.Fields[key]
+		if !ok {
+			return false
+		}
+
+		// Check if any value in the list matches `wantValue`
+		match := false
+		if listVal := val.GetListValue(); listVal != nil {
+			for _, v := range listVal.Values {
+				// 1. Literal Match
+				if s := v.GetStringValue(); s != "" {
+					if s == wantValue {
+						match = true
+						break
+					}
+				}
+				// 2. Node DCID Match
+				if s := v.GetStructValue(); s != nil {
+					if dcidVal := s.Fields["dcid"]; dcidVal != nil {
+						if dcidVal.GetStringValue() == wantValue {
+							match = true
+							break
+						}
+					}
+				}
+			}
+		}
+
+		if !match {
+			return false
+		}
 	}
 	return true
 }
