@@ -29,29 +29,40 @@ func matchFilters(candidate *pbv2.ResolveResponse_Entity_Candidate, filters map[
 		// but ideally we should check the typeOf list in properties if available?
 		// For backward compatibility and current logic, DominantType is reliable enough for now.
 		if key == "typeOf" {
-			if candidate.DominantType != wantValue {
-				// Fallback: Check candidate.Properties["typeOf"] list?
-				// The user might want to match ANY type in the list.
-				// If candidate.Properties exists and has typeOf, check it.
-				if candidate.Properties != nil {
-					if fields := candidate.Properties.Fields; fields != nil {
-						if listVal, ok := fields["typeOf"]; ok {
-							match := false
-							for _, v := range listVal.GetListValue().GetValues() {
-								if v.GetStringValue() == wantValue {
-									match = true
-									break
-								}
-							}
-							if match {
-								continue
+			// 1. Check DominantType
+			if candidate.DominantType == wantValue {
+				continue
+			}
+			// 2. Check Candidate.TypeOf (repeated field)
+			match := false
+			for _, t := range candidate.TypeOf {
+				if t == wantValue {
+					match = true
+					break
+				}
+			}
+			if match {
+				continue
+			}
+
+			// 3. Fallback: Check candidate.Properties["typeOf"] (Legacy/Struct)
+			if candidate.Properties != nil {
+				if fields := candidate.Properties.Fields; fields != nil {
+					if listVal, ok := fields["typeOf"]; ok {
+						for _, v := range listVal.GetListValue().GetValues() {
+							if v.GetStringValue() == wantValue {
+								match = true
+								break
 							}
 						}
 					}
 				}
-				return false
 			}
-			continue
+			if match {
+				continue
+			}
+
+			return false
 		}
 
 		// Arbitrary Property Filter

@@ -61,8 +61,8 @@ func TestVertexAIResolver_Resolve(t *testing.T) {
 					{
 						Node: "foo",
 						Candidates: []*pbv2.ResolveResponse_Entity_Candidate{
-							{Dcid: "sv_1", DominantType: "StatisticalVariable"},
-							{Dcid: "sv_2", DominantType: "StatisticalVariable"},
+							{Dcid: "sv_1"},
+							{Dcid: "sv_2"},
 						},
 					},
 				},
@@ -88,7 +88,7 @@ func TestVertexAIResolver_Resolve(t *testing.T) {
 					{
 						Node: "foo",
 						Candidates: []*pbv2.ResolveResponse_Entity_Candidate{
-							{Dcid: "sv_3", DominantType: "StatisticalVariable"},
+							{Dcid: "sv_3"},
 						},
 					},
 				},

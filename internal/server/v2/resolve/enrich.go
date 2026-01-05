@@ -154,8 +154,9 @@ func EnrichResponse(
 							}
 							if len(typeValues) > 0 {
 								candidate.TypeOf = typeValues
-								if len(typeValues) == 1 {
-									candidate.DominantType = ""
+								// If we have types, and DominantType is empty, use the first one as dominant
+								if candidate.DominantType == "" {
+									candidate.DominantType = typeValues[0]
 								}
 							}
 							continue
@@ -188,7 +189,7 @@ func EnrichResponse(
 								nodeObj := map[string]interface{}{
 									"dcid": n.Dcid,
 								}
-								if n.Name != "" {
+								if n.Name != "" && n.Name != n.Dcid {
 									nodeObj["name"] = n.Name
 								}
 								if len(n.Types) > 0 {

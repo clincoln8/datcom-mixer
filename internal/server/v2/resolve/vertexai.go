@@ -157,9 +157,6 @@ func (r *VertexAIResolver) Resolve(ctx context.Context, in *pbv2.ResolveRequest)
 		for _, dcid := range candidates {
 			entity.Candidates = append(entity.Candidates, &pbv2.ResolveResponse_Entity_Candidate{
 				Dcid: dcid,
-				// DominantType could be inferred or returned by the model?
-				// For 'embedding-statvars', we know they are StatisticalVariable
-				DominantType: "StatisticalVariable",
 			})
 		}
 		resp.Entities = append(resp.Entities, entity)

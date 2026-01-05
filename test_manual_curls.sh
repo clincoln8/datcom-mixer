@@ -55,10 +55,11 @@ run_test "Advanced Enrichment (Returned Properties: memberOf, ^relevantVariable)
     "returned_properties": ["memberOf", "^relevantVariable"]
 }'
 
-run_test "Typed Inverse Selection (^member:StatVarGroup)" '{
+run_test "Typed Inverse Selection (^member:StatVarPeerGroup)" '{
     "nodes": ["population without health insurance"],
     "specialized_resolver": "vertexai:nl_statvars",
-    "returned_properties": ["^member:StatVarGroup"]
+    "returned_properties": ["^member:StatVarPeerGroup"],
+    "limit": 2
 }'
 
 echo "--------------------------------------------------------"
@@ -76,7 +77,8 @@ echo ""
 
 run_test "Place Resolution" '{
     "nodes": ["Santa Clara", "Mountain View"],
-    "specialized_resolver": "place"
+    "specialized_resolver": "place",
+    "returned_properties": ["containedInPlace"]
 }'
 
 run_test "Property Dereferencing (*constraintProperties)" '{
