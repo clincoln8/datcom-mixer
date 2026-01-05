@@ -19,10 +19,10 @@ func TestDispatch(t *testing.T) {
 		wantErrorContains string
 	}{
 		{
-			desc: "Resolver: vertexai_embedding-statvars -> Routes to VertexAI (Client Error meant routing worked)",
+			desc: "Resolver: vertexai:nl_statvars -> Routes to VertexAI (Client Error meant routing worked)",
 			req: &pbv2.ResolveRequest{
 				Nodes:               []string{"foo"},
-				SpecializedResolver: "vertexai_embedding-statvars",
+				SpecializedResolver: "vertexai:nl_statvars",
 			},
 			// Client Mock will be nil (dummy) so VertexAIResolver checks client and returns FailedPrecondition
 			// This proves Dispatcher routed to VertexAIResolver

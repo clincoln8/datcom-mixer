@@ -78,7 +78,7 @@ func (d *Dispatcher) Dispatch(
 	case resolver == "place":
 		resp, err = d.place.Resolve(ctx, in, store, mapsClient)
 
-	case len(resolver) > 9 && resolver[:9] == "vertexai_":
+	case len(resolver) > 9 && resolver[:9] == "vertexai:":
 		resp, err = d.vertexAI.Resolve(ctx, in)
 
 	case resolver == "embeddings":

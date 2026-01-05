@@ -112,21 +112,20 @@ func NewVertexAIResolver(client VertexAI) *VertexAIResolver {
 // Resolve processes the resolution request using Vertex AI.
 func (r *VertexAIResolver) Resolve(ctx context.Context, in *pbv2.ResolveRequest) (*pbv2.ResolveResponse, error) {
 	specializedResolver := in.GetSpecializedResolver()
-	if !strings.HasPrefix(specializedResolver, "vertexai_") {
+	if !strings.HasPrefix(specializedResolver, "vertexai:") {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid specialized resolver for VertexAI: %s", specializedResolver)
 	}
 
-	appID := strings.TrimPrefix(specializedResolver, "vertexai_")
+	appID := strings.TrimPrefix(specializedResolver, "vertexai:")
 	
 	// Hardcoded mapping for specializedResolver to engineId
 	// Add new mappings here as needed.
 	var dataStoreID string
 	switch appID {
-	case "embedding-statvars":
+	case "nl_statvars":
 		dataStoreID = "nl-statvar-search-staging_1753469464090"
-	case "all-statvars":
-		// TODO: Add engine ID for all-statvars when available, or reuse same one if applicable
-		return nil, status.Errorf(codes.Unimplemented, "unsupported Vertex AI app: %s", appID) // Placeholder
+	case "all_statvars":
+		dataStoreID = "full-statvar-search-stagin_1753733792427"
 	default:
 		return nil, status.Errorf(codes.Unimplemented, "unsupported Vertex AI app: %s", appID)
 	}

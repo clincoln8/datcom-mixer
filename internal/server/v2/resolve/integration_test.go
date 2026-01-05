@@ -43,7 +43,7 @@ func TestIntegration_Resolve(t *testing.T) {
 	filters, _ := structpb.NewStruct(map[string]interface{}{"typeOf": "StatisticalVariable"})
 	req := &pbv2.ResolveRequest{
 		Nodes:               []string{"health insurance"},
-		SpecializedResolver: "vertexai_embedding-statvars",
+		SpecializedResolver: "vertexai:nl_statvars",
 		Filters:             filters,
 		Limit:               proto.Int32(10),
 	}

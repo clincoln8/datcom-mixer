@@ -41,10 +41,10 @@ func TestVertexAIResolver_Resolve(t *testing.T) {
 		wantErrorContains string
 	}{
 		{
-			desc: "Valid App ID (embedding-statvars) -> Success",
+			desc: "Valid App ID (nl_statvars) -> Success",
 			req: &pbv2.ResolveRequest{
 				Nodes:               []string{"foo"},
-				SpecializedResolver: "vertexai_embedding-statvars",
+				SpecializedResolver: "vertexai:nl_statvars",
 			},
 			mockClient: &MockVertexAIClient{
 				PredictFunc: func(ctx context.Context, appID string, nodes []string) (map[string][]string, error) {
@@ -70,10 +70,36 @@ func TestVertexAIResolver_Resolve(t *testing.T) {
 			wantCode: codes.OK,
 		},
 		{
+			desc: "Valid App ID (all_statvars) -> Success",
+			req: &pbv2.ResolveRequest{
+				Nodes:               []string{"foo"},
+				SpecializedResolver: "vertexai:all_statvars",
+			},
+			mockClient: &MockVertexAIClient{
+				PredictFunc: func(ctx context.Context, appID string, nodes []string) (map[string][]string, error) {
+					if appID != "full-statvar-search-stagin_1753733792427" {
+						return nil, fmt.Errorf("unexpected appID: %s", appID)
+					}
+					return map[string][]string{"foo": {"sv_3"}}, nil
+				},
+			},
+			want: &pbv2.ResolveResponse{
+				Entities: []*pbv2.ResolveResponse_Entity{
+					{
+						Node: "foo",
+						Candidates: []*pbv2.ResolveResponse_Entity_Candidate{
+							{Dcid: "sv_3", DominantType: "StatisticalVariable"},
+						},
+					},
+				},
+			},
+			wantCode: codes.OK,
+		},
+		{
 			desc: "Invalid App ID (unknown-app) -> Error",
 			req: &pbv2.ResolveRequest{
 				Nodes:               []string{"foo"},
-				SpecializedResolver: "vertexai_unknown-app",
+				SpecializedResolver: "vertexai:unknown-app",
 			},
 			mockClient: &MockVertexAIClient{},
 			wantCode:   codes.Unimplemented,
@@ -83,7 +109,7 @@ func TestVertexAIResolver_Resolve(t *testing.T) {
 			desc: "Client Error -> Internal Error",
 			req: &pbv2.ResolveRequest{
 				Nodes:               []string{"foo"},
-				SpecializedResolver: "vertexai_embedding-statvars",
+				SpecializedResolver: "vertexai:nl_statvars",
 			},
 			mockClient: &MockVertexAIClient{
 				PredictFunc: func(ctx context.Context, appID string, nodes []string) (map[string][]string, error) {
@@ -97,7 +123,7 @@ func TestVertexAIResolver_Resolve(t *testing.T) {
 			desc: "Client Not Initialized -> FailedPrecondition",
 			req: &pbv2.ResolveRequest{
 				Nodes:               []string{"foo"},
-				SpecializedResolver: "vertexai_embedding-statvars",
+				SpecializedResolver: "vertexai:nl_statvars",
 			},
 			mockClient: nil, // Trigger r.client == nil check
 			wantCode:   codes.FailedPrecondition,
