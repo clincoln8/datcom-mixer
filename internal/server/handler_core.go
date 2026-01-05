@@ -80,37 +80,53 @@ func (s *Server) V2ResolveCore(
 			"invalid property for resolving: %s", in.GetProperty())
 	}
 
+	var resp *pbv2.ResolveResponse
+
 	if inArc.SingleProp == "geoCoordinate" && outArc.SingleProp == "dcid" {
 		// Coordinate to ID:
 		// Example:
 		//   <-geoCoordinate->dcid
-		return resolve.Coordinate(ctx, s.store, in.GetNodes(),
+		resp, err = resolve.Coordinate(ctx, s.store, in.GetNodes(),
 			inArc.Filter["typeOf"])
-	}
-
-	if inArc.SingleProp == "description" && outArc.SingleProp == "dcid" {
+	} else if inArc.SingleProp == "description" && outArc.SingleProp == "dcid" {
 		// Description (name) to ID:
 		// Examples:
 		//   <-description->dcid
 		//   <-description{typeOf:City}->dcid
 		//   <-description{typeOf:[City, County]}->dcid
-		return resolve.Description(
+		resp, err = resolve.Description(
 			ctx,
 			s.store,
 			s.mapsClient,
 			in.GetNodes(),
 			inArc.Filter["typeOf"])
-	}
-
-	// ID to ID:
+	} else {
 	// Example:
 	//   <-wikidataId->nutsCode
-	return resolve.ID(
+	resp, err = resolve.ID(
 		ctx,
 		s.store,
 		in.GetNodes(),
 		inArc.SingleProp,
 		outArc.SingleProp)
+	}
+	
+	if err != nil {
+		return nil, err
+	}
+
+	// Hybrid Mode: If legacy property was used but modern filters/props/limit are present,
+	// pipe the result through the modern post-processor.
+	// Only do this if flag is enabled.
+	if s.flags != nil && s.flags.EnableExpandedResolve {
+		// Checks if modern params are present.
+		hasModernParams := in.Limit != nil || (in.Filters != nil && len(in.Filters.Fields) > 0) || len(in.ReturnedProperties) > 0
+		if hasModernParams {
+			return resolve.PostProcessResponse(ctx, in, s.store, s.metadata, resp)
+		}
+	}
+
+	return resp, nil
 }
 
 // V2NodeCore gets node results from Cloud Bigtable.

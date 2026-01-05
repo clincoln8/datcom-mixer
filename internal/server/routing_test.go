@@ -70,7 +70,7 @@ func TestV2ResolveCore_Routing(t *testing.T) {
 			&pbv2.ResolveRequest{
 				Nodes:    []string{"foo"},
 				Property: "invalid-property",
-				Limit:    10,
+				Limit:    func() *int32 { i := int32(10); return &i }(),
 			},
 			codes.InvalidArgument,
 			"arc string should start with arrow",
@@ -107,6 +107,17 @@ func TestV2ResolveCore_Routing(t *testing.T) {
 			},
 			codes.Unimplemented,
 			"embeddings resolver not yet implemented",
+		},
+		{
+			"Flag Enabled: Hybrid (Valid Property) -> Success",
+			true,
+			&pbv2.ResolveRequest{
+				Nodes:    []string{"foo"},
+				Property: "<-wikidataId->nutsCode",
+				Limit:    func() *int32 { i := int32(10); return &i }(),
+			},
+			codes.OK,
+			"",
 		},
 	} {
 		t.Run(c.desc, func(t *testing.T) {

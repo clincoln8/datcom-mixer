@@ -95,5 +95,31 @@ run_test "In-Arc Filtering (^member: ...)" '{
     }
 }'
 
+run_test "Hybrid Support (Legacy Prop + Limit + Enrichment)" '{
+    "nodes": ["Santa Clara"],
+    "property": "<-description->dcid",
+    "limit": 2,
+    "returned_properties": ["brockhausEncylcopediaOnlineId"]
+}'
+
+run_test "New Resolver, old logic" '{
+    "nodes": ["Santa Clara"],
+    "specialized_resolver": "place",
+    "returned_properties": ["containedInPlace"]
+}'
+
+run_test "Legacy ID Resolution (Q30 -> dcid)" '{
+    "nodes": ["Q30"],
+    "property": "<-wikidataId->dcid"
+}'
+
+run_test "Coordinate Resolution + Filter (containedInPlace)" '{
+    "nodes": ["37.42#-122.08"],
+    "property": "<-geoCoordinate->dcid",
+    "filters": {
+      "containedInPlace": "geoId/0608592830"
+    }
+}'
+
 echo "========================================================"
 echo "All tests executed."

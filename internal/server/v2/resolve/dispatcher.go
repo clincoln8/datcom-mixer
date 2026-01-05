@@ -60,6 +60,7 @@ func NewDispatcher(client VertexAI) *Dispatcher {
 }
 
 // Dispatch routes the request.
+// Dispatch routes the request.
 func (d *Dispatcher) Dispatch(
 	ctx context.Context,
 	in *pbv2.ResolveRequest,
@@ -93,6 +94,17 @@ func (d *Dispatcher) Dispatch(
 		return nil, err
 	}
 
+	return PostProcessResponse(ctx, in, store, metadata, resp)
+}
+
+// PostProcessResponse applies filtering, limiting, and enrichment to a ResolveResponse.
+func PostProcessResponse(
+	ctx context.Context,
+	in *pbv2.ResolveRequest,
+	store *store.Store,
+	metadata *resource.Metadata,
+	resp *pbv2.ResolveResponse,
+) (*pbv2.ResolveResponse, error) {
 	// 1. Pre-fetch properties needed for filtering
 	// Optimization: Only fetch properties used in filters for ALL candidates.
 	if filters := in.GetFilters(); filters != nil && len(filters.Fields) > 0 {
@@ -115,8 +127,7 @@ func (d *Dispatcher) Dispatch(
 
 	// 3. Post-fetch requested properties for the remaining candidates
 	// We run this to populate 'returned_properties' and ensure names/types are present for the final result.
-	err = EnrichResponse(ctx, store, metadata, resp, in.GetReturnedProperties())
-	if err != nil {
+	if err := EnrichResponse(ctx, store, metadata, resp, in.GetReturnedProperties()); err != nil {
 		return nil, err
 	}
 
@@ -176,15 +187,6 @@ func (d *Dispatcher) Dispatch(
 					// 2. Delete if not allowed
 					for key := range candidate.Properties.Fields {
 						keep := baseAllowed[key] || dynamicAllowed[key]
-						// Allow typeOf if it's there? Usually explicitly requested or auto-fetched?
-						// "typeOf" is automatically fetched by EnrichResponse. 
-						// If user didn't ask for it, should we keep it?
-						// Most legacy clients expect typeOf?
-						// User said: "just beacuase a prop is listed in filtering does not mean it should be retured"
-						// But typeOf is special.
-						// Let's assume if it wasn't requested, and not dereferenced, it goes.
-						// UNLESS it's required for the candidate struct itself (candidate.TypeOf slice).
-						// The Properties["typeOf"] is the legacy one.
 						if !keep {
 							delete(candidate.Properties.Fields, key)
 						}
@@ -194,10 +196,22 @@ func (d *Dispatcher) Dispatch(
 				if candidate.Properties != nil && len(candidate.Properties.Fields) == 0 {
 					candidate.Properties = nil
 				}
-				// User Request: Never return DominantType for resolver != place
-				if resolver != "place" {
+				// User Request: Never return DominantType for specialized_resolver != place
+				// However, here we don't know the specialized_resolver easily without potentially plumbing checks.
+				// Actually, we do have `in`.
+				// Logic: If specialized_resolver is NOT "place" AND NOT empty (default), remove DominantType.
+				// Wait, if it IS empty, it defaults to "embeddings" in Dispatch.
+				resolver := in.GetSpecializedResolver()
+				if resolver != "" && resolver != "place" {
 					candidate.DominantType = ""
 				}
+				// For legacy paths using this function, resolver will be empty or default.
+				// Legacy paths usually expect DominantType?
+				// Actually, legacy paths (Coordinate, Description) populated DominantType.
+				// The requirement "returns a 400 Bad Request if property (legacy) is provided alongside a specializedResolver other than place" implies legacy runs with specializedResolver="" or "place".
+				// So if property is present, specializedResolver is essentially "place" (implicit).
+				// So we should KEEP DominantType for legacy.
+
 				// User Request: Only return name if it differs from DCID
 				if candidate.Name == candidate.Dcid {
 					candidate.Name = ""

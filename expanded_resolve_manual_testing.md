@@ -243,4 +243,82 @@ curl -X POST http://localhost:8081/v2/resolve \
 **Expectation**:
 -   Status: `200 OK`
 -   Returned candidates (e.g. `Count_Person_NoHealthInsurance_Female_NoHealthInsurance`) must be members of the specified SVPG.
+-   Returned candidates (e.g. `Count_Person_NoHealthInsurance_Female_NoHealthInsurance`) must be members of the specified SVPG.
 -   Candidates *not* in that group should be filtered out.
+
+### Hybrid Support (Legacy + Modern)
+**Goal**: Verify that legacy properties can be combined with modern parameters (Limit, Filters, Enrichment).
+
+**POST (Curl):**
+```bash
+curl -X POST http://localhost:8081/v2/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nodes": ["Santa Clara"],
+    "property": "<-description->dcid",
+    "limit": 2,
+    "returned_properties": ["brockhausEncylcopediaOnlineId"]
+  }' | jq
+```
+
+**Expectation**:
+-   Status: `200 OK`
+-   Response contains exactly **2** candidates (Limit works).
+-   Candidates have `brockhausEncylcopediaOnlineId` populated (Enrichment works).
+
+### New Resolver, old logic
+**Goal**: Verify Place resolver with legacy-style property return.
+
+**POST (Curl):**
+```bash
+curl -X POST http://localhost:8081/v2/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nodes": ["Santa Clara"],
+    "specialized_resolver": "place",
+    "returned_properties": ["containedInPlace"]
+  }' | jq
+```
+
+**Expectation**:
+-   Status: `200 OK`
+-   Candidates have `containedInPlace` populated.
+
+### Legacy ID Resolution (Hybrid Check)
+**Goal**: Verify legacy ID-to-ID resolution works (optionally with modern params).
+
+**POST (Curl):**
+```bash
+curl -X POST http://localhost:8081/v2/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nodes": ["Q30"],
+    "property": "<-wikidataId->dcid"
+  }' | jq
+```
+
+**Expectation**:
+-   Status: `200 OK`
+-   Resolves `Q30` to `country/USA`.
+
+### Coordinate Resolution with Filter (Hybrid)
+**Goal**: Verify coordinate resolution allows filtering results (e.g. only return candidates contained in a specific city).
+
+**POST (Curl):**
+```bash
+curl -X POST http://localhost:8081/v2/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nodes": ["37.42#-122.08"],
+    "property": "<-geoCoordinate->dcid",
+    "filters": {
+      "containedInPlace": "geoId/0608592830"
+    }
+  }' | jq
+```
+
+**Expectation**:
+-   Status: `200 OK`
+-   Candidates should only include those contained in Mountain View Census County Division (`geoId/0608592830`).
+
+
