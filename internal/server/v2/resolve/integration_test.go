@@ -62,7 +62,9 @@ func TestIntegration_Resolve(t *testing.T) {
 			{
 				Node: "health insurance",
 				Candidates: []*pbv2.ResolveResponse_Entity_Candidate{
-					{Dcid: "Count_Person_NoHealthInsurance", DominantType: "StatisticalVariable"},
+					{
+						Dcid: "Count_Person_NoHealthInsurance",
+					},
 				},
 			},
 		},
