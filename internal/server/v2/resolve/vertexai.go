@@ -50,9 +50,9 @@ func (c *VertexAIClient) Close() error {
 
 // Predict sends a search request to the Vertex AI Agent Builder (Discovery Engine).
 func (c *VertexAIClient) Predict(ctx context.Context, appID string, nodes []string) (map[string][]string, error) {
-	// Serving Config: projects/{project}/locations/{location}/collections/default_collection/dataStores/{data_store}/servingConfigs/default_search
-	// We assume appID corresponds to the Data Store ID.
-	servingConfig := fmt.Sprintf("projects/%s/locations/%s/collections/default_collection/dataStores/%s/servingConfigs/default_search", c.projectID, c.location, appID)
+	// Serving Config: projects/{project}/locations/{location}/collections/default_collection/engines/{engine_id}/servingConfigs/default_search
+	// We assume appID corresponds to the Engine ID.
+	servingConfig := fmt.Sprintf("projects/%s/locations/%s/collections/default_collection/engines/%s/servingConfigs/default_search", c.projectID, c.location, appID)
 
 	results := make(map[string][]string)
 

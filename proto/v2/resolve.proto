@@ -39,7 +39,7 @@ message ResolveRequest{
     string specialized_resolver = 3;
     repeated string search_properties = 4;
     google.protobuf.Struct filters = 5;
-    int32 limit = 6;
+    optional int32 limit = 6;
     repeated string returned_properties = 7;
 }
 

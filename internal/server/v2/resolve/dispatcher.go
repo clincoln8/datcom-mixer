@@ -17,10 +17,20 @@ var (
 	dispatcherOnce     sync.Once
 )
 
+// VertexResolution defines the interface for Vertex AI resolution.
+type VertexResolution interface {
+	Resolve(ctx context.Context, in *pbv2.ResolveRequest) (*pbv2.ResolveResponse, error)
+}
+
+// PlaceResolution defines the interface for Place resolution.
+type PlaceResolution interface {
+	Resolve(ctx context.Context, in *pbv2.ResolveRequest, store *store.Store, mapsClient maps.MapsClient) (*pbv2.ResolveResponse, error)
+}
+
 // Dispatcher routes resolution requests to the appropriate backend.
 type Dispatcher struct {
-	vertexAI *VertexAIResolver
-	place    *PlaceResolver
+	vertexAI VertexResolution
+	place    PlaceResolution
 }
 
 // GetDispatcher returns the singleton Dispatcher instance.

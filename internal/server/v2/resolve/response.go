@@ -20,8 +20,6 @@ func StandardizeResponse(req *pbv2.ResolveRequest, resp *pbv2.ResolveResponse) *
 			}
 		}
 	}
-	limit := int(req.GetLimit())
-
 	for _, entity := range resp.Entities {
 		// 1. Filter
 		if len(filters) > 0 {
@@ -29,7 +27,8 @@ func StandardizeResponse(req *pbv2.ResolveRequest, resp *pbv2.ResolveResponse) *
 		}
 
 		// 2. Limit
-		if limit > 0 && len(entity.Candidates) > limit {
+		limit := int(req.GetLimit())
+		if limit >= 0 && len(entity.Candidates) > limit {
 			entity.Candidates = entity.Candidates[:limit]
 		}
 	}

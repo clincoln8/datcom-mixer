@@ -53,6 +53,11 @@ func (s *Server) V2ResolveCore(
 			return nil, status.Errorf(codes.InvalidArgument, "conflicting parameters: 'property' cannot be used with 'specialized_resolver' (except 'place') or 'search_properties'")
 		}
 		if in.GetProperty() == "" {
+			// Set default limit if not provided
+			if in.Limit == nil {
+				defaultLimit := int32(10)
+				in.Limit = &defaultLimit
+			}
 			// New Route: Dispatcher
 			return resolve.GetDispatcher().Dispatch(ctx, in, s.store, s.mapsClient)
 		}
